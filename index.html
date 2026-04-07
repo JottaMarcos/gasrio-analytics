@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>GásRio — Dashboard Analítico</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg:       #0f1117;
+    --card:     #1a1d27;
+    --border:   #2a2d3e;
+    --accent:   #f97316;
+    --accent2:  #3b82f6;
+    --accent3:  #10b981;
+    --accent4:  #ef4444;
+    --text:     #e2e8f0;
+    --muted:    #94a3b8;
+    --yellow:   #f59e0b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; min-height: 100vh; }
+
+  header {
+    background: linear-gradient(135deg, #1a1d27 0%, #12151f 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 20px 32px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .logo { display: flex; align-items: center; gap: 12px; }
+  .logo-icon { font-size: 32px; }
+  .logo h1 { font-size: 22px; font-weight: 700; color: var(--accent); }
+  .logo p  { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .badge { background: var(--accent); color: #fff; font-size: 11px; font-weight: 600;
+           padding: 4px 10px; border-radius: 20px; }
+
+  nav {
+    display: flex; gap: 4px; padding: 16px 32px;
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+  }
+  nav button {
+    background: transparent; border: 1px solid var(--border);
+    color: var(--muted); padding: 8px 16px; border-radius: 8px;
+    cursor: pointer; font-size: 13px; white-space: nowrap; transition: all .2s;
+  }
+  nav button.active, nav button:hover {
+    background: var(--accent); border-color: var(--accent);
+    color: #fff; font-weight: 600;
+  }
+
+  .container { padding: 24px 32px; max-width: 1400px; margin: 0 auto; }
+
+  .section { display: none; }
+  .section.active { display: block; }
+
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 24px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+
+  .kpi {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px;
+    display: flex; flex-direction: column; gap: 6px;
+    position: relative; overflow: hidden;
+  }
+  .kpi::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: var(--accent-color, var(--accent));
+  }
+  .kpi-label { font-size: 12px; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: .5px; }
+  .kpi-value { font-size: 28px; font-weight: 700; color: var(--text); }
+  .kpi-sub   { font-size: 12px; color: var(--muted); }
+  .kpi-icon  { font-size: 28px; position: absolute; right: 16px; top: 16px; opacity: .3; }
+
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px;
+  }
+  .card h3 { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 16px;
+             padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+
+  .chart-wrap { position: relative; height: 260px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; padding: 10px 12px; font-size: 11px; text-transform: uppercase;
+       letter-spacing: .5px; color: var(--muted); border-bottom: 1px solid var(--border); }
+  td { padding: 10px 12px; border-bottom: 1px solid #1f2233; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,.03); }
+
+  .tag {
+    display: inline-block; padding: 2px 8px; border-radius: 4px;
+    font-size: 11px; font-weight: 600;
+  }
+  .tag-red    { background: rgba(239,68,68,.15); color: #ef4444; }
+  .tag-green  { background: rgba(16,185,129,.15); color: #10b981; }
+  .tag-yellow { background: rgba(245,158,11,.15); color: #f59e0b; }
+  .tag-blue   { background: rgba(59,130,246,.15); color: #3b82f6; }
+
+  .progress-bar { background: var(--border); border-radius: 4px; height: 6px; margin-top: 4px; }
+  .progress-fill { height: 100%; border-radius: 4px; transition: width .6s ease; }
+
+  .alert-box {
+    background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.3);
+    border-radius: 10px; padding: 14px 16px; margin-bottom: 12px;
+    display: flex; align-items: flex-start; gap: 12px;
+  }
+  .alert-box .icon { font-size: 20px; flex-shrink: 0; }
+  .alert-box h4 { font-size: 13px; font-weight: 600; color: #ef4444; }
+  .alert-box p  { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  .alert-warn {
+    background: rgba(245,158,11,.08); border-color: rgba(245,158,11,.3);
+  }
+  .alert-warn h4 { color: #f59e0b; }
+
+  .rec-box {
+    background: rgba(16,185,129,.08); border: 1px solid rgba(16,185,129,.3);
+    border-radius: 10px; padding: 14px 16px; margin-bottom: 12px;
+    display: flex; align-items: flex-start; gap: 12px;
+  }
+  .rec-box h4 { font-size: 13px; font-weight: 600; color: #10b981; }
+  .rec-box p  { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  @media (max-width: 900px) {
+    .grid-4 { grid-template-columns: repeat(2,1fr); }
+    .grid-3 { grid-template-columns: repeat(2,1fr); }
+    .grid-2 { grid-template-columns: 1fr; }
+    .container { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🔥</div>
+    <div>
+      <h1>GásRio Distribuidora</h1>
+      <p>Dashboard Analítico Operacional · 6 Filiais · Rio de Janeiro</p>
+    </div>
+  </div>
+  <span class="badge">Dados 2021–2024</span>
+</header>
+
+<nav>
+  <button class="active" onclick="showSection('overview')">📊 Visão Geral</button>
+  <button onclick="showSection('logistica')">🚚 Logística</button>
+  <button onclick="showSection('financeiro')">💰 Financeiro</button>
+  <button onclick="showSection('estoque')">📦 Estoque</button>
+  <button onclick="showSection('gargalos')">⚠️ Gargalos</button>
+  <button onclick="showSection('recomendacoes')">💡 Recomendações</button>
+</nav>
+
+<div class="container">
+
+  <!-- ===== VISÃO GERAL ===== -->
+  <div class="section active" id="overview">
+    <div class="grid-4">
+      <div class="kpi" style="--accent-color:#f97316">
+        <span class="kpi-icon">📦</span>
+        <div class="kpi-label">Pedidos Totais</div>
+        <div class="kpi-value">10.000</div>
+        <div class="kpi-sub">6 filiais · 2021–2024</div>
+      </div>
+      <div class="kpi" style="--accent-color:#10b981">
+        <span class="kpi-icon">✅</span>
+        <div class="kpi-label">Taxa de Entrega</div>
+        <div class="kpi-value">72,4%</div>
+        <div class="kpi-sub">Meta: 85% · <span style="color:#ef4444">-12,6pp</span></div>
+      </div>
+      <div class="kpi" style="--accent-color:#3b82f6">
+        <span class="kpi-icon">💰</span>
+        <div class="kpi-label">Faturamento</div>
+        <div class="kpi-value">R$ 7,9M</div>
+        <div class="kpi-sub">Pedidos entregues</div>
+      </div>
+      <div class="kpi" style="--accent-color:#ef4444">
+        <span class="kpi-icon">⚠️</span>
+        <div class="kpi-label">Inadimplência</div>
+        <div class="kpi-value">R$ 184K</div>
+        <div class="kpi-sub">23,1% das contas a receber</div>
+      </div>
+    </div>
+
+    <div class="grid-4">
+      <div class="kpi" style="--accent-color:#8b5cf6">
+        <span class="kpi-icon">👥</span>
+        <div class="kpi-label">Clientes Ativos</div>
+        <div class="kpi-value">2.697</div>
+        <div class="kpi-sub">303 inativos (10%)</div>
+      </div>
+      <div class="kpi" style="--accent-color:#f59e0b">
+        <span class="kpi-icon">⭐</span>
+        <div class="kpi-label">NPS Médio</div>
+        <div class="kpi-value">7,8/10</div>
+        <div class="kpi-sub">3.000 avaliações</div>
+      </div>
+      <div class="kpi" style="--accent-color:#ec4899">
+        <span class="kpi-icon">🔧</span>
+        <div class="kpi-label">Custo Manutenção</div>
+        <div class="kpi-value">R$ 312K</div>
+        <div class="kpi-sub">~400 manutenções</div>
+      </div>
+      <div class="kpi" style="--accent-color:#ef4444">
+        <span class="kpi-icon">🚫</span>
+        <div class="kpi-label">Cancelamentos</div>
+        <div class="kpi-value">12,5%</div>
+        <div class="kpi-sub">Meta: <8% · crítico</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>📈 Faturamento por Filial</h3>
+        <div class="chart-wrap"><canvas id="chartFaturamento"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>🛒 Pedidos por Canal de Venda</h3>
+        <div class="chart-wrap"><canvas id="chartCanal"></canvas></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>🏪 Resumo por Filial</h3>
+      <table>
+        <tr>
+          <th>Filial</th><th>Zona</th><th>Pedidos</th><th>Entregues</th>
+          <th>Taxa Entrega</th><th>Faturamento</th><th>NPS Médio</th><th>Status</th>
+        </tr>
+        <tr>
+          <td><b>Centro</b></td><td>Zona Central</td><td>1.682</td><td>1.218</td>
+          <td><span class="tag tag-yellow">72,4%</span></td>
+          <td>R$ 1,32M</td><td>7,9</td>
+          <td><span class="tag tag-yellow">Atenção</span></td>
+        </tr>
+        <tr>
+          <td><b>Barra da Tijuca</b></td><td>Zona Oeste</td><td>1.724</td><td>1.311</td>
+          <td><span class="tag tag-green">76,1%</span></td>
+          <td>R$ 1,48M</td><td>8,1</td>
+          <td><span class="tag tag-green">OK</span></td>
+        </tr>
+        <tr>
+          <td><b>Madureira</b></td><td>Zona Norte</td><td>1.653</td><td>1.156</td>
+          <td><span class="tag tag-red">69,9%</span></td>
+          <td>R$ 1,21M</td><td>7,4</td>
+          <td><span class="tag tag-red">Crítico</span></td>
+        </tr>
+        <tr>
+          <td><b>Campo Grande</b></td><td>Zona Oeste</td><td>1.698</td><td>1.237</td>
+          <td><span class="tag tag-yellow">72,8%</span></td>
+          <td>R$ 1,29M</td><td>7,7</td>
+          <td><span class="tag tag-yellow">Atenção</span></td>
+        </tr>
+        <tr>
+          <td><b>Niterói</b></td><td>Niterói</td><td>1.612</td><td>1.235</td>
+          <td><span class="tag tag-green">76,6%</span></td>
+          <td>R$ 1,39M</td><td>8,3</td>
+          <td><span class="tag tag-green">OK</span></td>
+        </tr>
+        <tr>
+          <td><b>Bangu</b></td><td>Zona Oeste</td><td>1.631</td><td>1.085</td>
+          <td><span class="tag tag-red">66,5%</span></td>
+          <td>R$ 1,19M</td><td>7,1</td>
+          <td><span class="tag tag-red">Crítico</span></td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===== LOGÍSTICA ===== -->
+  <div class="section" id="logistica">
+    <div class="grid-4">
+      <div class="kpi" style="--accent-color:#f97316">
+        <span class="kpi-icon">🚚</span>
+        <div class="kpi-label">Veículos Ativos</div>
+        <div class="kpi-value">37</div>
+        <div class="kpi-sub">6 em manutenção</div>
+      </div>
+      <div class="kpi" style="--accent-color:#ef4444">
+        <span class="kpi-icon">⏱️</span>
+        <div class="kpi-label">Atraso Médio</div>
+        <div class="kpi-value">47 min</div>
+        <div class="kpi-sub">Bangu: 94 min (crítico)</div>
+      </div>
+      <div class="kpi" style="--accent-color:#f59e0b">
+        <span class="kpi-icon">🔧</span>
+        <div class="kpi-label">Manutenções/Mês</div>
+        <div class="kpi-value">8,3</div>
+        <div class="kpi-sub">Média frota</div>
+      </div>
+      <div class="kpi" style="--accent-color:#10b981">
+        <span class="kpi-icon">🏎️</span>
+        <div class="kpi-label">KM Médio Frota</div>
+        <div class="kpi-value">87.400</div>
+        <div class="kpi-sub">km por veículo</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>⏱️ Atraso Médio de Entrega por Filial (minutos)</h3>
+        <div class="chart-wrap"><canvas id="chartAtraso"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>❌ Motivos de Cancelamento</h3>
+        <div class="chart-wrap"><canvas id="chartCancelamento"></canvas></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>🔧 Top 10 Veículos — Custo de Manutenção vs Pedidos Realizados</h3>
+      <table>
+        <tr><th>Placa</th><th>Modelo</th><th>Filial</th><th>KM</th><th>Pedidos</th><th>Custo Manut.</th><th>Custo/Pedido</th><th>Alerta</th></tr>
+        <tr><td>ABC1D23</td><td>Ford Cargo</td><td>Madureira</td><td>178.200</td><td>142</td><td>R$ 18.400</td><td>R$ 129,58</td><td><span class="tag tag-red">Alto</span></td></tr>
+        <tr><td>XYZ2E45</td><td>VW Delivery</td><td>Bangu</td><td>162.500</td><td>117</td><td>R$ 15.900</td><td>R$ 135,90</td><td><span class="tag tag-red">Alto</span></td></tr>
+        <tr><td>MNO3F67</td><td>Iveco Daily</td><td>Centro</td><td>154.800</td><td>198</td><td>R$ 12.300</td><td>R$ 62,12</td><td><span class="tag tag-yellow">Médio</span></td></tr>
+        <tr><td>DEF4G89</td><td>Fiat Ducato</td><td>Niterói</td><td>141.200</td><td>231</td><td>R$ 9.800</td><td>R$ 42,42</td><td><span class="tag tag-green">OK</span></td></tr>
+        <tr><td>GHI5H01</td><td>Mercedes Sprinter</td><td>Barra</td><td>133.600</td><td>267</td><td>R$ 8.200</td><td>R$ 30,71</td><td><span class="tag tag-green">OK</span></td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>👷 Desempenho dos Entregadores — Nota Média & Atrasos</h3>
+      <div class="chart-wrap" style="height:200px"><canvas id="chartEntregadores"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ===== FINANCEIRO ===== -->
+  <div class="section" id="financeiro">
+    <div class="grid-4">
+      <div class="kpi" style="--accent-color:#10b981">
+        <span class="kpi-icon">💵</span>
+        <div class="kpi-label">Receita Total</div>
+        <div class="kpi-value">R$ 7,9M</div>
+        <div class="kpi-sub">2021–2024</div>
+      </div>
+      <div class="kpi" style="--accent-color:#3b82f6">
+        <span class="kpi-icon">🎫</span>
+        <div class="kpi-label">Ticket Médio</div>
+        <div class="kpi-value">R$ 108,40</div>
+        <div class="kpi-sub">Por pedido entregue</div>
+      </div>
+      <div class="kpi" style="--accent-color:#ef4444">
+        <span class="kpi-icon">📉</span>
+        <div class="kpi-label">Inadimplência</div>
+        <div class="kpi-value">R$ 184K</div>
+        <div class="kpi-sub">23,1% das contas a receber</div>
+      </div>
+      <div class="kpi" style="--accent-color:#f59e0b">
+        <span class="kpi-icon">🏷️</span>
+        <div class="kpi-label">Total Descontos</div>
+        <div class="kpi-value">R$ 58K</div>
+        <div class="kpi-sub">0,7% da receita</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>📊 Faturamento Mensal — Tendência 2022–2024</h3>
+        <div class="chart-wrap"><canvas id="chartTendencia"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>💳 Forma de Pagamento</h3>
+        <div class="chart-wrap"><canvas id="chartPagamento"></canvas></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>🚨 Inadimplência por Filial</h3>
+      <table>
+        <tr><th>Filial</th><th>Clientes Devedores</th><th>Valor Vencido</th><th>Valor Aberto</th><th>% Inadimplência</th><th>Alerta</th></tr>
+        <tr><td><b>Madureira</b></td><td>87</td><td>R$ 38.400</td><td>R$ 22.100</td><td><b>27,3%</b></td><td><span class="tag tag-red">Crítico</span></td></tr>
+        <tr><td><b>Bangu</b></td><td>74</td><td>R$ 33.200</td><td>R$ 18.900</td><td><b>25,8%</b></td><td><span class="tag tag-red">Crítico</span></td></tr>
+        <tr><td><b>Campo Grande</b></td><td>63</td><td>R$ 28.700</td><td>R$ 15.400</td><td><b>22,1%</b></td><td><span class="tag tag-yellow">Atenção</span></td></tr>
+        <tr><td><b>Centro</b></td><td>52</td><td>R$ 24.100</td><td>R$ 12.200</td><td><b>19,8%</b></td><td><span class="tag tag-yellow">Atenção</span></td></tr>
+        <tr><td><b>Barra da Tijuca</b></td><td>38</td><td>R$ 16.500</td><td>R$ 9.800</td><td><b>14,2%</b></td><td><span class="tag tag-green">OK</span></td></tr>
+        <tr><td><b>Niterói</b></td><td>31</td><td>R$ 13.200</td><td>R$ 7.600</td><td><b>11,9%</b></td><td><span class="tag tag-green">OK</span></td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===== ESTOQUE ===== -->
+  <div class="section" id="estoque">
+    <div class="grid-4">
+      <div class="kpi" style="--accent-color:#f97316">
+        <span class="kpi-icon">📦</span>
+        <div class="kpi-label">Itens em Estoque</div>
+        <div class="kpi-value">48 tipos</div>
+        <div class="kpi-sub">8 produtos × 6 filiais</div>
+      </div>
+      <div class="kpi" style="--accent-color:#ef4444">
+        <span class="kpi-icon">🔴</span>
+        <div class="kpi-label">Abaixo do Mínimo</div>
+        <div class="kpi-value">11 itens</div>
+        <div class="kpi-sub">Risco de ruptura</div>
+      </div>
+      <div class="kpi" style="--accent-color:#10b981">
+        <span class="kpi-icon">🔁</span>
+        <div class="kpi-label">Botijões c/ Cliente</div>
+        <div class="kpi-value">700</div>
+        <div class="kpi-sub">Não devolvidos</div>
+      </div>
+      <div class="kpi" style="--accent-color:#8b5cf6">
+        <span class="kpi-icon">📉</span>
+        <div class="kpi-label">Perdas Registradas</div>
+        <div class="kpi-value">R$ 24K</div>
+        <div class="kpi-sub">Avaria + furto</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>📦 Nível de Estoque por Produto — Filiais Críticas</h3>
+        <div style="display:flex;flex-direction:column;gap:14px;margin-top:8px;">
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;">
+              <span>P13 Residencial — Bangu</span>
+              <span style="color:#ef4444;font-weight:700">8 un (min: 20)</span>
+            </div>
+            <div class="progress-bar"><div class="progress-fill" style="width:40%;background:#ef4444"></div></div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;">
+              <span>P45 Comercial — Madureira</span>
+              <span style="color:#ef4444;font-weight:700">3 un (min: 10)</span>
+            </div>
+            <div class="progress-bar"><div class="progress-fill" style="width:30%;background:#ef4444"></div></div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;">
+              <span>P13 Residencial — Campo Grande</span>
+              <span style="color:#f59e0b;font-weight:700">14 un (min: 20)</span>
+            </div>
+            <div class="progress-bar"><div class="progress-fill" style="width:70%;background:#f59e0b"></div></div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;">
+              <span>Regulador Aliança — Centro</span>
+              <span style="color:#f59e0b;font-weight:700">3 un (min: 5)</span>
+            </div>
+            <div class="progress-bar"><div class="progress-fill" style="width:60%;background:#f59e0b"></div></div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;">
+              <span>P13 Residencial — Niterói</span>
+              <span style="color:#10b981;font-weight:700">187 un (min: 20)</span>
+            </div>
+            <div class="progress-bar"><div class="progress-fill" style="width:90%;background:#10b981"></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>🏆 Produto Mais Vendido por Filial</h3>
+        <div class="chart-wrap"><canvas id="chartProdutos"></canvas></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>📊 Movimentações de Estoque por Tipo</h3>
+      <div class="chart-wrap" style="height:200px"><canvas id="chartMovimentos"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ===== GARGALOS ===== -->
+  <div class="section" id="gargalos">
+    <div style="margin-bottom:20px">
+      <h2 style="font-size:18px;font-weight:700;margin-bottom:4px">⚠️ Gargalos Identificados</h2>
+      <p style="color:var(--muted);font-size:13px">Análise baseada em padrões nos dados operacionais de 2021–2024</p>
+    </div>
+
+    <div class="alert-box">
+      <div class="icon">🔴</div>
+      <div>
+        <h4>Gargalo 1 — Bangu e Madureira com taxa de entrega crítica</h4>
+        <p>Bangu: 66,5% | Madureira: 69,9% — ambas abaixo da meta de 85%. Atraso médio de 94 e 78 minutos respectivamente. Causa provável: frota envelhecida (alto custo de manutenção) + concentração de ocorrências de trânsito e cliente ausente.</p>
+      </div>
+    </div>
+
+    <div class="alert-box">
+      <div class="icon">🔴</div>
+      <div>
+        <h4>Gargalo 2 — Inadimplência acima de 23% nas filiais de Zona Norte/Oeste</h4>
+        <p>Madureira (27,3%) e Bangu (25,8%) concentram 39% de toda a inadimplência. Limite de "fiado" sendo extrapolado sem controle efetivo. R$ 184K em risco direto de perda.</p>
+      </div>
+    </div>
+
+    <div class="alert-box alert-warn">
+      <div class="icon">🟡</div>
+      <div>
+        <h4>Gargalo 3 — Estoque crítico em 11 combinações filial/produto</h4>
+        <p>Bangu e Campo Grande estão com P13 abaixo do estoque mínimo. Risco de ruptura e perda de venda. Ausência de gatilho automático de reposição.</p>
+      </div>
+    </div>
+
+    <div class="alert-box alert-warn">
+      <div class="icon">🟡</div>
+      <div>
+        <h4>Gargalo 4 — 700 botijões não devolvidos por clientes</h4>
+        <p>Representa R$ 73.500 em ativos imobilizados (estimativa a R$ 105/un). Ausência de cobrança sistematizada de devolução após 30 dias.</p>
+      </div>
+    </div>
+
+    <div class="alert-box alert-warn">
+      <div class="icon">🟡</div>
+      <div>
+        <h4>Gargalo 5 — 12,5% de cancelamentos acima do tolerável</h4>
+        <p>Principal motivo: "cliente_desistiu" (34%) e "endereço não encontrado" (22%). Endereço errado é evitável com validação no cadastro. "Desistiu" sugere janela de entrega longa.</p>
+      </div>
+    </div>
+
+    <div class="alert-box">
+      <div class="icon">🔴</div>
+      <div>
+        <h4>Gargalo 6 — Veículos com custo de manutenção > R$ 100/pedido</h4>
+        <p>2 veículos em Madureira e Bangu com custo acima de R$ 129/pedido, enquanto média da frota é R$ 45. Esses veículos devem ser substituídos ou ter rotas reduzidas.</p>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:8px">
+      <h3>📊 Distribuição de Ocorrências por Tipo e Gravidade</h3>
+      <div class="chart-wrap"><canvas id="chartOcorrencias"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ===== RECOMENDAÇÕES ===== -->
+  <div class="section" id="recomendacoes">
+    <div style="margin-bottom:20px">
+      <h2 style="font-size:18px;font-weight:700;margin-bottom:4px">💡 Recomendações Estratégicas</h2>
+      <p style="color:var(--muted);font-size:13px">Ações prioritárias baseadas na análise dos gargalos identificados</p>
+    </div>
+
+    <div class="grid-2">
+      <div>
+        <div class="rec-box">
+          <div class="icon">🚚</div>
+          <div>
+            <h4>R1 — Renovação de Frota em Bangu e Madureira</h4>
+            <p>Substituir os 2 veículos com custo/pedido acima de R$ 120. Estimativa de economia: R$ 28K/ano. ROI em &lt;18 meses com veículo semi-novo.</p>
+          </div>
+        </div>
+        <div class="rec-box">
+          <div class="icon">⏰</div>
+          <div>
+            <h4>R2 — Janela de Entrega Reduzida (2h → 1h)</h4>
+            <p>Aumentar granularidade das janelas. Reduz "cliente ausente" em ~40% e melhora NPS de 7,1 para estimativa de 8,0+ nas filiais críticas.</p>
+          </div>
+        </div>
+        <div class="rec-box">
+          <div class="icon">📦</div>
+          <div>
+            <h4>R3 — Gatilho Automático de Reposição de Estoque</h4>
+            <p>Implementar alerta automático quando estoque atingir 130% do mínimo (não 100%). Evita ruptura e pedidos perdidos. Potencial de +R$ 45K em vendas recuperadas.</p>
+          </div>
+        </div>
+        <div class="rec-box">
+          <div class="icon">📍</div>
+          <div>
+            <h4>R4 — Validação de Endereço no Cadastro</h4>
+            <p>Integrar API de CEP no momento do cadastro do cliente. Elimina ~22% dos cancelamentos por "endereço não encontrado" e reduz custo logístico de reentrega.</p>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="rec-box">
+          <div class="icon">💰</div>
+          <div>
+            <h4>R5 — Política de Crédito Diferenciada por Zona</h4>
+            <p>Bangu e Madureira: reduzir limite de fiado e exigir 2 referências. Implementar score interno de crédito baseado em histórico de pagamento. Meta: reduzir inadimplência para &lt;15% em 6 meses.</p>
+          </div>
+        </div>
+        <div class="rec-box">
+          <div class="icon">🔁</div>
+          <div>
+            <h4>R6 — Programa de Recuperação de Botijões</h4>
+            <p>Cobrar taxa de R$ 30/mês após 30 dias sem devolução. Projeção de recuperação: 420 botijões em 3 meses → R$ 44.100 em ativo recuperado.</p>
+          </div>
+        </div>
+        <div class="rec-box">
+          <div class="icon">📱</div>
+          <div>
+            <h4>R7 — Migração de Clientes para Canal Digital</h4>
+            <p>Telefone ainda é 38% dos pedidos com ticket médio 8% menor que app. Campanha de migração com desconto de R$ 5 no primeiro pedido via app. Meta: reduzir telefone para &lt;25% em 12 meses.</p>
+          </div>
+        </div>
+        <div class="rec-box">
+          <div class="icon">⭐</div>
+          <div>
+            <h4>R8 — Plano de Melhoria para Entregadores Nota &lt;7</h4>
+            <p>6 entregadores com nota média abaixo de 7,0 e taxa de atraso acima de 35%. Treinamento focado em atendimento ao cliente + roteirização otimizada por bairro.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>📋 Roadmap de Implementação</h3>
+      <table>
+        <tr><th>Prioridade</th><th>Ação</th><th>Prazo</th><th>Impacto Estimado</th><th>Custo</th></tr>
+        <tr><td><span class="tag tag-red">Alta</span></td><td>Validação de CEP no cadastro (R4)</td><td>30 dias</td><td>-22% cancelamentos</td><td>Baixo</td></tr>
+        <tr><td><span class="tag tag-red">Alta</span></td><td>Política de crédito diferenciada (R5)</td><td>30 dias</td><td>-40% inadimplência</td><td>Baixo</td></tr>
+        <tr><td><span class="tag tag-red">Alta</span></td><td>Gatilho de reposição de estoque (R3)</td><td>45 dias</td><td>+R$ 45K receita</td><td>Baixo</td></tr>
+        <tr><td><span class="tag tag-yellow">Média</span></td><td>Programa de recuperação botijões (R6)</td><td>60 dias</td><td>+R$ 44K ativo</td><td>Médio</td></tr>
+        <tr><td><span class="tag tag-yellow">Média</span></td><td>Janela de entrega 1h (R2)</td><td>60 dias</td><td>NPS +0,9pt</td><td>Médio</td></tr>
+        <tr><td><span class="tag tag-yellow">Média</span></td><td>Migração canal digital (R7)</td><td>90 dias</td><td>+8% ticket médio</td><td>Médio</td></tr>
+        <tr><td><span class="tag tag-blue">Normal</span></td><td>Renovação de 2 veículos (R1)</td><td>180 dias</td><td>-R$ 28K/ano manutenção</td><td>Alto</td></tr>
+        <tr><td><span class="tag tag-blue">Normal</span></td><td>Treinamento entregadores (R8)</td><td>90 dias</td><td>NPS +1,2pt</td><td>Baixo</td></tr>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<script>
+const C = (id, type, data, opts={}) => {
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  new Chart(ctx, { type, data, options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { labels: { color: '#94a3b8', font: { size: 11 } } } },
+    scales: type !== 'pie' && type !== 'doughnut' ? {
+      x: { ticks: { color: '#94a3b8', font:{size:11} }, grid: { color: '#2a2d3e' } },
+      y: { ticks: { color: '#94a3b8', font:{size:11} }, grid: { color: '#2a2d3e' } }
+    } : undefined,
+    ...opts
+  }});
+};
+
+const filiais = ['Centro','Barra','Madureira','C. Grande','Niterói','Bangu'];
+const cores   = ['#f97316','#3b82f6','#10b981','#8b5cf6','#f59e0b','#ef4444'];
+
+C('chartFaturamento','bar',{
+  labels: filiais,
+  datasets:[{
+    label:'Faturamento (R$)',
+    data:[1320000,1480000,1210000,1290000,1390000,1190000],
+    backgroundColor: cores
+  }]
+});
+
+C('chartCanal','doughnut',{
+  labels:['Telefone','WhatsApp','App','Balcão'],
+  datasets:[{data:[38,28,22,12],backgroundColor:['#f97316','#10b981','#3b82f6','#8b5cf6']}]
+});
+
+C('chartAtraso','bar',{
+  labels: filiais,
+  datasets:[{
+    label:'Atraso médio (min)',
+    data:[41,29,78,52,24,94],
+    backgroundColor: [41,29,78,52,24,94].map(v => v>60?'#ef4444':v>40?'#f59e0b':'#10b981')
+  }]
+},{plugins:{legend:{display:false}}});
+
+C('chartCancelamento','doughnut',{
+  labels:['Cliente desistiu','Endereço errado','Prod. indisponível','Pgto recusado','Concorrência'],
+  datasets:[{data:[34,22,19,14,11],backgroundColor:['#ef4444','#f97316','#f59e0b','#8b5cf6','#3b82f6']}]
+});
+
+C('chartEntregadores','bar',{
+  labels:['Carlos S.','Ana P.','José L.','Maria R.','Pedro M.','Luiz F.','Fernanda C.','Bruno A.'],
+  datasets:[
+    {label:'Nota Média',data:[6.2,6.8,7.1,7.4,7.8,8.1,8.5,8.8],backgroundColor:'#3b82f6',yAxisID:'y'},
+    {label:'% Atraso',data:[44,38,29,25,21,17,14,11],backgroundColor:'#ef4444',yAxisID:'y1'},
+  ]
+},{scales:{
+  x:{ticks:{color:'#94a3b8',font:{size:10}},grid:{color:'#2a2d3e'}},
+  y:{ticks:{color:'#94a3b8',font:{size:10}},grid:{color:'#2a2d3e'},min:0,max:10},
+  y1:{position:'right',ticks:{color:'#94a3b8',font:{size:10}},grid:{display:false},min:0,max:60}
+}});
+
+C('chartTendencia','line',{
+  labels:['Jan/22','Abr/22','Jul/22','Out/22','Jan/23','Abr/23','Jul/23','Out/23','Jan/24','Abr/24','Jul/24','Out/24'],
+  datasets:[
+    {label:'Barra',data:[112,118,125,121,130,138,142,139,148,155,162,158],borderColor:'#3b82f6',fill:false,tension:.4},
+    {label:'Niterói',data:[108,114,119,116,124,131,136,133,141,148,154,151],borderColor:'#10b981',fill:false,tension:.4},
+    {label:'Madureira',data:[98,103,108,104,112,118,121,117,124,129,133,130],borderColor:'#f59e0b',fill:false,tension:.4},
+    {label:'Bangu',data:[91,96,100,97,104,110,113,109,116,121,124,120],borderColor:'#ef4444',fill:false,tension:.4},
+  ]
+});
+
+C('chartPagamento','doughnut',{
+  labels:['Dinheiro','Pix','Cartão Débito','Cartão Crédito','Fiado'],
+  datasets:[{data:[32,29,18,14,7],backgroundColor:['#10b981','#3b82f6','#8b5cf6','#f97316','#ef4444']}]
+});
+
+C('chartProdutos','bar',{
+  labels: filiais,
+  datasets:[
+    {label:'P13 (uni)',data:[2840,3120,2610,2780,2950,2390],backgroundColor:'#f97316'},
+    {label:'P45 (uni)',data:[420,580,310,390,460,280],backgroundColor:'#3b82f6'},
+    {label:'Acessórios',data:[180,240,140,190,210,120],backgroundColor:'#10b981'},
+  ]
+});
+
+C('chartMovimentos','bar',{
+  labels: filiais,
+  datasets:[
+    {label:'Entradas',data:[820,940,770,840,890,720],backgroundColor:'#10b981'},
+    {label:'Saídas',data:[1240,1380,1150,1210,1320,1080],backgroundColor:'#f97316'},
+    {label:'Ajustes',data:[42,38,61,49,35,58],backgroundColor:'#f59e0b'},
+  ]
+});
+
+C('chartOcorrencias','bar',{
+  labels:['Cliente ausente','End. errado','Reclamação','Avaria','Veículo quebrado','Vazamento','Acidente','Furto','Atraso','Prod. errado'],
+  datasets:[
+    {label:'Total',data:[198,176,142,118,87,62,14,8,156,94],backgroundColor:'#f97316'},
+    {label:'Custo total (R$)',data:[0,0,8400,14200,38700,22100,41200,28800,0,3100],backgroundColor:'#ef4444',yAxisID:'y1'}
+  ]
+},{scales:{
+  x:{ticks:{color:'#94a3b8',font:{size:10}},grid:{color:'#2a2d3e'}},
+  y:{ticks:{color:'#94a3b8',font:{size:10}},grid:{color:'#2a2d3e'}},
+  y1:{position:'right',ticks:{color:'#94a3b8',font:{size:10},callback:v=>'R$'+v.toLocaleString()},grid:{display:false}}
+}});
+
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>
