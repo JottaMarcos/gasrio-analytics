@@ -50,7 +50,7 @@ DB_CONFIG = {
     "port":     5432,
     "dbname":   "distribuidora_gas",
     "user":     "postgres",
-    "password": "postgres"  # <-- ajuste aqui
+    "password": "****" 
 }
 ```
 
