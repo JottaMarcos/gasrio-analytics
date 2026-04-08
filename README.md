@@ -81,10 +81,8 @@ psql -U postgres -d distribuidora_gas -f 03_analises.sql
 
 Abra o arquivo no navegador:
 ```
-04_dashboard.html
+!Clique Aqui][https://jottamarcos.github.io/gasrio-analytics/]
 ```
-
-Clique duas vezes no arquivo ou arraste para o Chrome/Edge.
 
 ---
 
