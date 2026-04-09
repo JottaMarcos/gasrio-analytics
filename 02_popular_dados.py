@@ -25,7 +25,7 @@ DB_CONFIG = {
     "port":     5432,
     "dbname":   "distribuidora_gas",
     "user":     "postgres",
-    "password": "postgres"  # <-- altere se necessário
+    "password": "SUA SENHA" 
 }
 
 def conectar():
